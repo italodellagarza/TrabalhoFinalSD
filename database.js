@@ -16,17 +16,33 @@ let db = new sqlite3.Database(DBSOURCE, (err) => {
                     ano INTEGER,
                     automatico BOOLEAN, 
                     preco FLOAT
+                );`,
+        (err) => {
+            if (err) {
+                // Tabelas já criadas
+            }else{
+                // Tabelas recém criadas, incluindo algumas linhas.
+                console.log('criou carros')
+                var insertCarros = 'INSERT INTO carros (fabricante, modelo, ano, automatico, preco) VALUES (?,?,?,?,?)'
+                db.run(insertCarros, ['Volkswagen', 'jetta', 2013, 0, 56000.00])
+                db.run(insertCarros, ['Chevrolet', 'Cruze', 2016, 1, 56000.00])
+            }
+        })
+        db.run(`CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT UNIQUE,
+                    password TEXT
                 )`,
         (err) => {
             if (err) {
-                // Tabela já criada
+                // Tabelas já criadas
             }else{
-                // Tabela recém criada, incluindo algumas linhas.
-                var insert = 'INSERT INTO carros (fabricante, modelo, ano, automatico, preco) VALUES (?,?,?,?,?)'
-                db.run(insert, ['Volkswagen', 'jetta', 2013, 0, 56000.00])
-                db.run(insert, ['Chevrolet', 'Cruze', 2016, 1, 56000.00])
+                // Tabelas recém criadas, incluindo algumas linhas.
+                console.log('criou users')
+                var insertUser = 'INSERT INTO users (email, password) VALUES (?,?)'
+                db.run(insertUser, ['italo@email.com', 'senha123456'])
             }
-        });  
+        });    
     }
 });
 
