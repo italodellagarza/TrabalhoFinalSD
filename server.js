@@ -176,7 +176,7 @@ app.put('/livros/:id', verifyJWT, function (req, res) {
                     anoPublicacao = COALESCE(?, anoPublicacao),
                     numPaginas = COALESCE(?, numPaginas)
                 WHERE id = ?`;
-    var params = [novoLivro.titulo, novoLivro.autor, novoLivro.genero, novoLivro.edicao, novoLivro.anoPublicacao, novoLivro.numPaginas];
+    var params = [novoLivro.titulo, novoLivro.autor, novoLivro.genero, novoLivro.edicao, novoLivro.anoPublicacao, novoLivro.numPaginas, req.params.id];
     db.run(sql, params, function(err, result){
         if (err){
             res.status(400).json({"error": res.message})
