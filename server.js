@@ -1,3 +1,13 @@
+/**
+ * server.js
+ * Servidor Básico em Javascript
+ * Ítalo Della Garza Silva
+ * Adaptado de: https://developerhowto.com/2018/12/29/build-a-rest-api-with-node-js-and-express-js/, 
+ *              https://gitlab.com/gcc129/api-carros
+ * 04/12/2019
+ * Universidade Federal de Lavras
+ */
+
 var express = require('express');
 var bodyParser = require('body-parser');
 var jwt = require('jsonwebtoken');
@@ -16,10 +26,10 @@ app.listen(5000)
 
 function verifyJWT(req, res, next){
     var token = req.headers['x-access-token'];
-    if (!token) return res.status(401).send({ auth: false, message: 'No token provided.' });
+    if (!token) return res.status(401).send({ auth: false, message: 'Nenhum token fornecido.' });
     
     jwt.verify(token, SECRET_KEY, function(err, decoded) {
-        if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+        if (err) return res.status(500).send({ auth: false, message: 'Falhou ao autenticar o token.' });
         
         // se tudo estiver ok, salva no request para uso posterior
         req.userId = decoded.id;
@@ -30,11 +40,11 @@ function verifyJWT(req, res, next){
 
 // Getters
 app.get('/', function (req, res) {
-    res.end('Bem vindo a API Carros');
+    res.end('Bem vindo a API Livros');
 })
 
-app.get('/carros', verifyJWT, function (req, res){
-    var sql = "SELECT * FROM carros";
+app.get('/livros', verifyJWT, function (req, res){
+    var sql = "SELECT * FROM Livro";
     var params = [];
     db.all(sql, params, function(err, rows){
         if(err){
@@ -47,8 +57,8 @@ app.get('/carros', verifyJWT, function (req, res){
     });
 })
 
-app.get('/carros/count', function (req, res) {
-    sql = "SELECT COUNT(*) FROM carros";
+app.get('/livros/count', verifyJWT, function (req, res) {
+    sql = "SELECT COUNT(*) FROM Livro";
     params = [];
     db.get(sql, params, function(err, result) {
         if(err){
@@ -59,22 +69,10 @@ app.get('/carros/count', function (req, res) {
     });
 })
 
-app.get('/carros/menorpreco', function (req, res) {
-    var sql = "SELECT * FROM carros WHERE preco = (SELECT MIN(preco) FROM carros)";
-    var params = []
-    db.get(sql, params, function(err, row){
-        if(err){
-            res.status(400).json({"erro ": err.message});
-            return;
-        }
-        else {
-            res.json({"message": "success", "data": row})
-        }
-    });
-})
 
-app.get('/carros/:id', function (req, res) {
-    var sql = "SELECT * FROM carros WHERE id = ?";
+
+app.get('/livros/:id', verifyJWT, function (req, res) {
+    var sql = "SELECT * FROM Livro WHERE id = ?";
     var params = [req.params.id];
 
     db.get(sql, params, function(err, row){
@@ -89,24 +87,41 @@ app.get('/carros/:id', function (req, res) {
 
 })
 
+
 // Posters
+
+app.post('/livros/byautor', verifyJWT, function (req, res) {
+    var sql = "SELECT * FROM Livro WHERE autor = ?";
+    var params = [req.body.autor];
+
+    db.get(sql, params, function(err, row){
+        if(err){
+            res.status(400).json({"erro ": err.message});
+            return;
+        }
+        else {
+            res.json({"message": "success", "data": row})
+        }
+    });
+
+})
 
 app.post('/login', function (req, res) {
     const email = req.body.email;
-    const passwd = req.body.password;
-    sql = "SELECT * FROM users WHERE email = ?";
+    const senha = req.body.senha;
+    sql = "SELECT * FROM Usuario WHERE email = ?";
     var params = [email]
 
-    db.get(sql, params, function(err, user) {
+    db.get(sql, params, function(err, usuario) {
         if(err) {
             res.status(400).json({"erro ": err.message});
             return;
         }
         else {
-            if(passwd == user.password) {
+            if(senha == usuario.senha) {
                 console.log('successo');
                 const  expiresIn  =  24  *  60  *  60;
-                const  accessToken  =  jwt.sign({ id:  user.id }, SECRET_KEY, {
+                const  accessToken  =  jwt.sign({ id:  usuario.id }, SECRET_KEY, {
                     expiresIn:  expiresIn
                 });
                 res.status(200).send({ "email":  email, "access_token":  accessToken, "expires_in":  expiresIn});
@@ -117,10 +132,10 @@ app.post('/login', function (req, res) {
 });
 
 
-app.post('/carros', function (req, res) {
-    var carro = req.body;
-    var sql = "INSERT INTO carros (fabricante, modelo, ano, automatico, preco) VALUES (?,?,?,?,?)";
-    var params = [carro.fabricante, carro.modelo, carro.ano, carro.automatico, carro.preco];
+app.post('/livros', verifyJWT, function (req, res) {
+    var livro = req.body;
+    var sql = "INSERT INTO Livro (titulo, autor, genero, edicao, anoPublicacao, numPaginas) VALUES (?,?,?,?,?,?)";
+    var params = [livro.titulo, livro.autor, livro.genero, livro.edicao, livro.anoPublicacao, livro.numPaginas];
     db.run(sql, params, function(err, result) {
         if(err) {
             res.status(400).json({"error": err.message})
@@ -128,15 +143,15 @@ app.post('/carros', function (req, res) {
         } 
         res.json({
             "message": "success",
-            "data": carro,
+            "data": livro,
             "id" : this.lastID
         });
     });
 })
 
 // Deleters
-app.delete('/carros/:id', function (req, res) {
-    var sql = "DELETE FROM carros WHERE id=?";
+app.delete('/livros/:id', verifyJWT, function (req, res) {
+    var sql = "DELETE FROM Livro WHERE id=?";
     var params = [req.params.id];
     db.run(sql, params, function(err, result) {
         if(err) {
@@ -151,16 +166,17 @@ app.delete('/carros/:id', function (req, res) {
 })
 
 // Updaters
-app.put('/carros/:id', function (req, res) {
-    var newCarro = req.body;
-    var sql = `UPDATE carros SET 
-                    fabricante = COALESCE(?, fabricante),
-                    modelo = COALESCE(?, modelo),
-                    ano = COALESCE(?, modelo),
-                    automatico = COALESCE(?, modelo),
-                    preco = COALESCE(?, modelo)
+app.put('/livros/:id', verifyJWT, function (req, res) {
+    var novoLivro = req.body;
+    var sql = `UPDATE Livro SET 
+                    titulo = COALESCE(?, titulo),
+                    autor = COALESCE(?, autor),
+                    genero = COALESCE(?, genero),
+                    edicao = COALESCE(?, edicao),
+                    anoPublicacao = COALESCE(?, anoPublicacao),
+                    numPaginas = COALESCE(?, numPaginas)
                 WHERE id = ?`;
-    var params = [newCarro.fabricante, newCarro.modelo, newCarro.ano, newCarro.automatico, newCarro.preco ,req.params.id];
+    var params = [novoLivro.titulo, novoLivro.autor, novoLivro.genero, novoLivro.edicao, novoLivro.anoPublicacao, novoLivro.numPaginas];
     db.run(sql, params, function(err, result){
         if (err){
             res.status(400).json({"error": res.message})
@@ -168,12 +184,8 @@ app.put('/carros/:id', function (req, res) {
         }
         res.json({
             message: "success",
-            data: newCarro,
+            data: novoLivro,
             changes: this.changes
         })
     });
 })
-
-// Todo novos dados
-// Thanks to https://developerhowto.com/2018/12/29/build-a-rest-api-with-node-js-and-express-js/, 
-//           https://gitlab.com/gcc129/api-carros
